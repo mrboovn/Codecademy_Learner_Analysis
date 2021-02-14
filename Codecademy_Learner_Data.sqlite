@@ -1,0 +1,97 @@
+/*Review the table*/
+SELECT *
+FROM users
+
+SELECT *
+FROM progress
+
+/* Find top 25 schools by .edu domains */
+SELECT email_domain
+FROM users
+GROUP BY 1
+ORDER BY count(*) desc
+LIMIT 25
+
+/*How many .edu learners are located in New York */
+SELECT count(user_id)
+FROM users
+WHERE city = 'New York'
+
+/* How many learners are using a mobile app */
+SELECT COUNT(*)
+FROM users
+WHERE mobile_app = 'mobile-user'
+
+/* Query for the sign up counts for each hour */
+SELECT strftime('%H', sign_up_at),COUNT(*)
+FROM users
+GROUP BY 1
+
+/* Do different schools (.edu domains) prefer different courses? */
+SELECT u.email_domain,
+COUNT (CASE WHEN p.learn_cpp IN ('complete','started') THEN p.user_id END) AS cpp_count,
+COUNT (CASE WHEN p.learn_sql IN ('complete','started') THEN p.user_id END) AS sql_count,
+COUNT (CASE WHEN p.learn_html IN ('complete','started') THEN p.user_id END) AS html_count,
+COUNT (CASE WHEN p.learn_javascript IN ('complete','started') THEN p.user_id END) AS js_count,
+COUNT (CASE WHEN p.learn_java IN ('complete','started') THEN p.user_id END) AS java_count
+FROM users u
+JOIN progress p
+ON u.user_id = p.user_id
+GROUP BY 1
+
+/* What courses are the New Yorkers students taking? */
+SELECT u.email_domain,
+COUNT (CASE WHEN p.learn_cpp IN ('complete','started') THEN p.user_id END) AS cpp_count,
+COUNT (CASE WHEN p.learn_sql IN ('complete','started') THEN p.user_id END) AS sql_count,
+COUNT (CASE WHEN p.learn_html IN ('complete','started') THEN p.user_id END) AS html_count,
+COUNT (CASE WHEN p.learn_javascript IN ('complete','started') THEN p.user_id END) AS js_count,
+COUNT (CASE WHEN p.learn_java IN ('complete','started') THEN p.user_id END) AS java_count
+FROM users u
+JOIN progress p
+ON u.user_id = p.user_id
+WHERE u.city = 'New York'
+GROUP BY 1
+
+/* What courses are the Chicago students taking? */
+SELECT u.email_domain,
+COUNT (CASE WHEN p.learn_cpp IN ('complete','started') THEN p.user_id END) AS cpp_count,
+COUNT (CASE WHEN p.learn_sql IN ('complete','started') THEN p.user_id END) AS sql_count,
+COUNT (CASE WHEN p.learn_html IN ('complete','started') THEN p.user_id END) AS html_count,
+COUNT (CASE WHEN p.learn_javascript IN ('complete','started') THEN p.user_id END) AS js_count,
+COUNT (CASE WHEN p.learn_java IN ('complete','started') THEN p.user_id END) AS java_count
+FROM users u
+JOIN progress p
+ON u.user_id = p.user_id
+WHERE u.city = 'Chicago'
+GROUP BY 1
+
+/* Completetion rate of students from University of California system */
+WITH completed_sub AS 
+(SELECT email_domain,
+COUNT (CASE WHEN p.learn_cpp ='completed' THEN p.user_id END) AS cpp_cpl,
+COUNT (CASE WHEN p.learn_sql ='completed' THEN p.user_id END) AS sql_cpl,
+COUNT (CASE WHEN p.learn_html ='completed' THEN p.user_id END) AS html_cpl,
+COUNT (CASE WHEN p.learn_javascript ='completed' THEN p.user_id END) AS js_cpl,
+COUNT (CASE WHEN p.learn_java='completed' THEN p.user_id END) AS java_cpl
+FROM users u
+JOIN progress p
+ON u.user_id = p.user_id
+WHERE email_domain in ('ucsd.edu','ucdavis.edu','ucsc.edu','ucla.edu','uci.edu','ucmerced.edu','ucr.edu','ucsb.edu','berkeley.edu')
+GROUP BY 1),
+started_sub AS 
+(SELECT email_domain,
+COUNT (CASE WHEN p.learn_cpp IN ('started','completed') THEN p.user_id END) AS cpp_str,
+COUNT (CASE WHEN p.learn_sql IN ('started','completed') THEN p.user_id END) AS sql_str,
+COUNT (CASE WHEN p.learn_html IN ('started','completed') THEN p.user_id END) AS html_str,
+COUNT (CASE WHEN p.learn_javascript IN ('started','completed') THEN p.user_id END) AS js_str,
+COUNT (CASE WHEN p.learn_java IN ('started','completed') THEN p.user_id END) AS java_str
+FROM users u
+JOIN progress p
+ON u.user_id = p.user_id
+WHERE email_domain in ('ucsd.edu','ucdavis.edu','ucsc.edu','ucla.edu','uci.edu','ucmerced.edu','ucr.edu','ucsb.edu','berkeley.edu')
+GROUP BY 1)
+
+SELECT ((SUM(cpp_cpl)+SUM(sql_cpl)+SUM(html_cpl)+SUM(js_cpl)+SUM(java_cpl))*1.0/(SUM(cpp_str)+SUM(sql_str)+SUM(html_str)+SUM(js_str)+SUM(java_str))*1.0)*100 as completion_rate
+FROM completed_sub c
+JOIN started_sub s
+ON c.email_domain = s.email_domain
